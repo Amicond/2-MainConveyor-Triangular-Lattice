@@ -169,7 +169,7 @@ int find_last_group(vector<state> &cur,int start_n)//возвращает номер последнего
 
 }
 
-res finalvalue4(vector<state> &v1,vector<state> &v2,int **Jfactors,int n,int debug_param)
+res finalvalue4(vector<state> &v1,vector<state> &v2,int **Jfactors,int n)
 {
 	res fv;
 	for(int i=0;i<(n+2)*(n+1)/2;i++)
@@ -180,43 +180,18 @@ res finalvalue4(vector<state> &v1,vector<state> &v2,int **Jfactors,int n,int deb
 	i1=0;// указывает текущую группу
 	int last1,last2;
 
-	//start debug
-	ofstream outt;
-	if (debug_param == 13)
-	{
-		outt.open("test2.txt", ios::out);
-		for (int i = 0; i < N; i++)
-			outt << (int)v1[0].states[i] << " " << (int)v2[0].states[i]<<"\n";
-		outt << "\n\n";
-	}
-	//end debug
 
 	while((i2<v2.size())&&(i1<v1.size()))
 	{
 		
 		if(v2[i2]==v1[i1])//организуем суммирование
 		{
-			//start debug
-			if (debug_param == 13)
-			{
-				outt << i1 << " " << i2 << "\n";
-			}
-			//end debug
 			last1=find_last_group(v1,i1);
 			last2=find_last_group(v2,i2);
 			for(int i=i1;i<=last1;i++)
 			{
 				for(int j=i2;j<=last2;j++)
 				{
-
-					//Start test #1
-					//////////////////////////////////////////////////////////////////////////
-					/*ofstream outtestFin("outfin4.txt",ios::app);
-					outtestFin<<i<<" "<<j<<"\n";
-					outtestFin.close();*/
-					//////////////////////////////////////////////////////////////////////////
-					//End test #1
-					//////////////////////////////////////////////////////////////////////////
 					for(int ttt=0;ttt<3;ttt++)
 					{
 						tmpres[ttt]=0;
@@ -230,8 +205,6 @@ res finalvalue4(vector<state> &v1,vector<state> &v2,int **Jfactors,int n,int deb
 							fv.factors[ra]+=v1[i].factor*v2[j].factor;
 						}
 					}
-
-					//////////////////////////////////////////////////////////////////////////
 				}
 			}
 			i1=last1+1;
@@ -246,7 +219,6 @@ res finalvalue4(vector<state> &v1,vector<state> &v2,int **Jfactors,int n,int deb
 			i1=1+find_last_group(v1,i1);
 		}
 	}
-	outt.close();
 	return fv;
 }
 
@@ -843,74 +815,19 @@ int main(int argc, char* argv[])
 								//logfile<<"curlen="<<i<<" curn="<<j<<" zz="<<zz<<" k="<<k<<" x="<<ll<<" size1="<<vOut1[ll].size()<<" size2="<<vOut2[ll].size()<<"\n";
 							}
 
-							//start debug
-							if ( zz == 13)
-							{
-								ofstream tof("test.txt");
-								for (int uu = 0; uu < vOut1[0].size(); uu++)
-								{
-									tof << (int)vOut1[0][uu].coeff[0] << " " << (int)vOut1[0][uu].coeff[2] << " " << (int)vOut1[0][uu].states[0] << " " << (int)vOut1[0][uu].states[1] << " " << vOut1[0][uu].factor<<"\n";
-								}
-								tof << "\n\n";
-								for (int uu = 0; uu < vOut2[0].size(); uu++)
-								{
-									tof << (int)vOut2[0][uu].coeff[0] << " " << (int)vOut2[0][uu].coeff[2] << " " << (int)vOut2[0][uu].states[0] << " " << (int)vOut2[0][uu].states[1] << " " << vOut2[0][uu].factor << "\n";
-								}
-								tof.close();
-							}
-							//end debug
+							
 							
 							for(int x=0;x<real_size;x++)
 							{
 								for(int y=0; y<real_size;y++)
 								{
-									//Start Test code #1
+									
 									res tmpres;
-
-									/*if(function_flag==3)
-									{
-										ofstream outtestFin("outfin3.txt",ios::app);
-										outtestFin<<"N "<<x<<" "<<y<<"\n";
-										outtestFin.close();
-										tmpres=finalvalue3(vOut1[x],vOut2[y],Jfactors,n);
-										out_string="Test3-Results\\";
-									}
-									else if(function_flag==4)*/
-									{
-										//Start debug code #12
-										//ofstream outtestFin("outfin4.txt",ios::app);
-										//outtestFin<<"N "<<x<<" "<<y<<"\n";
-										//outtestFin.close();
-										//End debug code #12
-										
-										//start debug
-										int lu;
-										if (x == 0 && y == 0 && zz == 13)
-											lu = 13;
-										else
-											lu = 0;
-										//end debug
-										tmpres=finalvalue4(vOut1[x],vOut2[y],Jfactors,Order,lu);
-										//start debug
-										if (x == 0 && y == 0 && abs(tmpres.factors[9]) > 0.000001)
-											cout << zz << " " << tmpres.factors[9]<<"\n";
-										//end debug
-										
-										//out_string="Test4-Results\\";
-										out_string=out_res+str_type+delim;
-
-									}
-									//End Test code #1
-
-
-
-
-									//Test for symmetry
-									//////////////////////////////////////////////////////////////////////////
-									//res tmpres2=finalvalue3(vOut1[y],vOut2[x],Jfactors,n);
-									//////////////////////////////////////////////////////////////////////////
-									//End Test for symmetry
-									//Matrix[k][x][y]+=tmpres;
+									
+									tmpres=finalvalue4(vOut1[x],vOut2[y],Jfactors,Order);
+									
+									out_string=out_res+str_type+delim;
+						
 									if(minus1(nodeSets[k],Order)==-1)
 										tmpres.minus();
 									MatrixFull[x][y]+=tmpres;
@@ -976,14 +893,6 @@ int main(int argc, char* argv[])
 				{
 					for(int kk=0;kk<(Order+2)*(Order+1)/2;kk++)
 					{
-						//test
-						if (kk == 9 && jj == 0 && ii == 0)
-						{
-							cout << MatrixFull[ii][jj].factors[kk];
-							int tttt;
-							cin >> tttt;
-						}
-						//end test
 						if(abs(MatrixFull[ii][jj].factors[kk])>0.0000000000001)
 							matrixRes<<MatrixFull[ii][jj].factors[kk]<<"*"<<strarr[kk]<<"+";
 					}
