@@ -15,373 +15,29 @@
 #include <time.h>
 
 using namespace std;
-ofstream logfile("log.txt",ios::out);
-
-
-vector<edge> edges;//ребра текущего маршрута
-vector<step> nodes;//вершины текущего маршрута
-
-vector<state> *ref1,*ref2;
-int node_nums_of_edges[N][2];
-int minus1(int *nodeSet,int n)
-{
-	int res=1;
-	for(int i=0;i<n-1;i++)
-	{
-		if(nodeSet[i]==0)
-			res*=-1;
-	}
-	return res;
-}
-res **Matrix[matrixResAmount]; //своя матрица под каждое слагаемое ряда в 6 порядке
-res **MatrixFull;//Суммарная матрица на маршрут
-
-void eval_cur_route(int r[][2],int OrderLength, int RouteLength,vector<edge> &edges,vector<step> &nodes,int &RealLength)
-	//заполняет для данного маршрута список ребер и их количество
-{
-	for(int i=0;i<8;i++)
-	{
-		node_nums_of_edges[i][0]=0;
-		node_nums_of_edges[i][1]=0;
-	}
-	//Проверяем реальную длину маршрута+ строим маску - сколько раз каждое ребро должно встречаться
-	int num_ed[10];//число ребер
-	edge cur;
-	bool flag;
-	RealLength=0;//Реальное количество различных "ГЛАВНЫХ" операторов
-	edges.clear();
-	for(int i=0;i<10;i++)
-	{
-		num_ed[i]=0;
-	}
-	for (int i=0;i<2*RouteLength;i+=2)//список ребер
-	{
-		cur.set(r[i][0],r[i][1],r[i+1][0],r[i+1][1]);
-		flag=true;
-		for(unsigned int j=0;j<edges.size();j++)
-		{
-			if(cur==edges[j])
-			{
-				flag=false;
-				num_ed[j]++;
-			}
-		}
-		if(flag)
-		{
-			edges.push_back(cur);
-			num_ed[edges.size()-1]++;
-		}
-	}
-	nodes.clear();
-	//nodes.push_back(step(r[0][0],r[0][1]));
-	for(int i=0;i<2*RouteLength;i++)//вычисляем номера вершин
-	{
-		if(find(nodes.begin(),nodes.end(),step(r[i][0],r[i][1]))==nodes.end())
-			nodes.push_back(step(r[i][0],r[i][1]));
-	}
-	for(unsigned int i=0;i<edges.size();i++)//заполняем номера в "nodes" начала и конца для каждого ребра из "edges"
-	{
-		node_nums_of_edges[i][0]=distance(nodes.begin(),find(nodes.begin(),nodes.end(),step(edges[i].x1,edges[i].y1)));
-		node_nums_of_edges[i][1]=distance(nodes.begin(),find(nodes.begin(),nodes.end(),step(edges[i].x2,edges[i].y2)));
-	}
-	RealLength=edges.size();
-}
 
 
 
-
-//////////////////////////////////////////////////////////////////////////
-res finalvalue3(vector<state> &v1,vector<state> &v2,int **Jfactors,int n) //полный перебор, можно улучшить
-{
-	res fv;
-	for(int i=0;i<(n+2)*(n+1)/2;i++)
-		fv.factors[i]=0;
-	unsigned int i1,i2;
-	int tmpres[3];
-	for(i2=0;i2<v2.size();i2++)
-	{
-		for(i1=0;i1<v1.size();i1++)
-		{
-			if(v1[i1]==v2[i2])
-			{
-				ofstream outtestFin("outfin3.txt",ios::app);
-				outtestFin<<i1<<" "<<i2<<"\n";
-				outtestFin.close();
-				for(int ttt=0;ttt<3;ttt++)
-				{
-					tmpres[ttt]=0;
-					tmpres[ttt]=v1[i1].coeff[ttt]+v2[i2].coeff[ttt];
-				}
-				/*
-				if(tmpres[0]==3)
-					fv.factors[0]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[0]==2&&tmpres[1]==1)
-					fv.factors[1]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[0]==2&&tmpres[2]==1)
-					fv.factors[2]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[0]==1&&tmpres[1]==2)
-					fv.factors[3]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[0]==1&&tmpres[1]==1&&tmpres[2]==1)
-					fv.factors[4]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[0]==1&&tmpres[2]==2)
-					fv.factors[5]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[1]==3)
-					fv.factors[6]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[1]==2&&tmpres[2]==1)
-					fv.factors[7]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[1]==1&&tmpres[2]==2)
-					fv.factors[8]+=v1[i1].factor*v2[i2].factor;
-				if(tmpres[2]==3)
-					fv.factors[9]+=v1[i1].factor*v2[i2].factor;
-				*/
-				for(int ra=0;ra<(n+2)*(n+1)/2;ra++)
-				{
-					if((tmpres[0]==Jfactors[ra][0])&&(tmpres[1]==Jfactors[ra][1])&&(tmpres[2]==Jfactors[ra][2]))
-					{
-						fv.factors[ra]+=v1[i1].factor*v2[i2].factor;
-					}
-				}
-			}
-		}
-	}
-	return fv;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//03.02.2014
-int find_last_group(vector<state> &cur,int start_n)//возвращает номер последнего элемента равного заданному, работает для отсортированных массивов
-///Можно улучшить с помощью бинарного поиска
-{
-	int last=start_n;
-	for(int i=start_n+1;i<cur.size();i++)
-	{
-		if(cur[start_n]==cur[i])
-		{
-			last=i;
-		}
-		else
-		{
-			break;
-		}
-	}
-
-	return last;
-
-}
-
-res finalvalue4(vector<state> &v1,vector<state> &v2,int **Jfactors,int n)
-{
-	res fv;
-	for(int i=0;i<(n+2)*(n+1)/2;i++)
-		fv.factors[i]=0;
-	unsigned int i1,i2;
-	int tmpres[3];
-	i2=0;// указывает текущую группу
-	i1=0;// указывает текущую группу
-	int last1,last2;
-
-
-	while((i2<v2.size())&&(i1<v1.size()))
-	{
-		
-		if(v2[i2]==v1[i1])//организуем суммирование
-		{
-			last1=find_last_group(v1,i1);
-			last2=find_last_group(v2,i2);
-			for(int i=i1;i<=last1;i++)
-			{
-				for(int j=i2;j<=last2;j++)
-				{
-					for(int ttt=0;ttt<3;ttt++)
-					{
-						tmpres[ttt]=0;
-						tmpres[ttt]=v1[i].coeff[ttt]+v2[j].coeff[ttt];
-					}
-
-					for(int ra=0;ra<(n+2)*(n+1)/2;ra++)
-					{
-						if((tmpres[0]==Jfactors[ra][0])&&(tmpres[1]==Jfactors[ra][1])&&(tmpres[2]==Jfactors[ra][2]))
-						{
-							fv.factors[ra]+=v1[i].factor*v2[j].factor;
-						}
-					}
-				}
-			}
-			i1=last1+1;
-			i2=last2+1;
-		}
-		else if(v2[i2]<v1[i1])
-		{
-			i2=1+find_last_group(v2,i2);//перешли к следующей группе
-		}
-		else
-		{
-			i1=1+find_last_group(v1,i1);
-		}
-	}
-	return fv;
-}
-
-
-
-bool check_cur_operator_set(bool &Res,int OrderLength, int RealLength,int *termorder,int *op_set,vector<edge> edges)//проверяем можкт ли быть не 0 по данной конфигурации
-{
-	int start=0;
-	int end;
-	int mask[10];
-	Res=true;
-	bool last=false;
-	bool if_find;
-	vector<step> nodes;
-	step cur_node(0,0);
-	for(int i=0;i<OrderLength;i++)
-	{
-		if(i==OrderLength-1)
-		{
-			end=i;
-			last=true;
-		}
-		if((termorder[i]==0)||(last==true))
-		{
-			end=i;//нашли группу
-			for(int j=0;j<10;j++)
-				mask[j]=0;
-			for(int j=start;j<=end;j++)
-			{
-				if((unsigned int)op_set[j]<edges.size())//нашли ребро
-				{
-					cur_node.sx=edges[op_set[j]].x1; //выбираем его первую вершину
-					cur_node.sy=edges[op_set[j]].y1;
-					if_find=false;
-					for(unsigned int k=0;k<nodes.size();k++)//ищем ее
-					{
-						if(nodes[k]==cur_node)//если нашли увеличиваем ее кол-во
-						{
-							mask[k]++;
-							if_find=true;
-						}
-					}
-					if(!if_find)//если не нашли добавляем
-					{
-						nodes.push_back(cur_node);
-						mask[nodes.size()-1]=1;
-					}
-
-					cur_node.sx=edges[op_set[j]].x2;//выбираем его 2ую вершину
-					cur_node.sy=edges[op_set[j]].y2;
-					if_find=false;
-					for(unsigned int k=0;k<nodes.size();k++)//ищем ее
-					{
-						if(nodes[k]==cur_node)//если нашли увеличиваем ее кол-во
-						{
-							mask[k]++;
-							if_find=true;
-						}
-					}
-					if(!if_find)//если не нашли добавляем
-					{
-						nodes.push_back(cur_node);
-						mask[nodes.size()-1]=1;
-					}
-				}
-			}
-
-			for(int j=0;j<OrderLength;j++)
-			{
-				if(mask[j]==1)
-				{
-					Res=false;
-					break;
-				}
-			}
-
-			if(!Res)
-				break;
-			start=i+1;
-		}
-		if(!Res)
-			break;
-	}
-	return Res;
-}
-
-void read_Route( int r[][2],istringstream &s)
-{
-	char c=' ';
-	while(c!='n')
-	{
-		s>>c;
-	}
-	s>>c;//пропускаем 1 символ
-	int num=0;
-	while(N*2-1>=num)
-	{
-
-		s>>r[num][0];
-		s>>c;
-		s>>r[num][1];
-		num++;
-
-		s>>c;
-		s>>c;
-		s>>c;//пропускаем 3 символа
-		s>>r[num][0];
-		s>>c;
-		s>>r[num][1];
-		num++;
-		s>>c;
-		s>>c;
-	}
-
-}
-
-
-void  clear_res_Matrix(res **ans,int size)
-{
-	for(int i=0;i<size;i++)
-		for(int j=0;j<size;j++)
-			for(int k=0;k<resAmount;k++)
-				ans[i][j].factors[k]=0;
-}
-
-void add_res_Matrix(res **ans,res **cur,int size)
-{
-	for(int i=0;i<size;i++)
-		for(int j=i;j<size;j++)
-			for(int k=0;k<resAmount;k++)
-				ans[i][j].factors[k]+=cur[i][j].factors[k];
-}
-
-void res_Extend(res **ans,int size) //дозаполняем матрицу до симметричной
-{
-	for(int i=0;i<size;i++)
-		for(int j=i+1;j<size;j++)
-			for(int k=0;k<resAmount;k++)
-				ans[j][i].factors[k]=ans[i][j].factors[k];
-}
-
-int getPlaquetType(step cur_point, int baseType)
-{
-	return ((baseType+(cur_point.sy - cur_point.sx))%3+3)%3;
-}
-
-//int _tmain(int argc, _TCHAR* argv[])
 int main(int argc, char* argv[])
 {
-	/*cout << "Check order 4 file!\n";
-	char check;
-	cin >> check;*/
+	ofstream logfile("log.txt", ios::out);
+	
+	
+	
+	vector<edge> edges;//ребра текущего маршрута
+	vector<step> nodes;//вершины текущего маршрута
+	vector<state> *ref1, *ref2;
+	int node_nums_of_edges[N][2];
+	res **MatrixFull;//Суммарная матрица на маршрут
+	
+
+
 	int startRouteNum,finRouteNum;
 	int baseType;
 	ifstream inproutesNums("input.txt",ios::in);
 	//запуск нескольких маршрутов
 	inproutesNums>>baseType>>startRouteNum>>finRouteNum;
 
-	/*
-	//запуск ровно 1 маршрута
-	inproutesNums>>startRouteNum;
-	finRouteNum=startRouteNum;
-	*/
 	inproutesNums.close();
 
 	///Проверка на совпадение размеров
@@ -418,7 +74,6 @@ int main(int argc, char* argv[])
 	string *strarr;
 
 	//Start Test variables
-	//long start,end;
 	string out_string;
 	string str_type;
 	//End Test Var
@@ -433,13 +88,13 @@ int main(int argc, char* argv[])
 		cin >> Order;
 		exit(-1);
 	}
-	switch(type)
-	{
-        case 1: str_type=type1; break;
-        case 2: str_type=type2; break;
-        case 3: str_type=type3; break;
-        default: logfile<<"Type error!!"; logfile.close(); return 2;
-
+	
+	if(type>0&&type<3)
+		str_type = type_name[type-1];
+	else{
+		logfile<<"Type error!!"; 
+		logfile.close(); 
+		return 2;
 	}
 	//Если NotLoops и subOrder==Order считываем good file
 	bool goodNotLoopCase=false;
@@ -491,8 +146,6 @@ int main(int argc, char* argv[])
 	generate_all_Jstrings(Order,Jfactors,strarr);
 
 
-
-	///
 	sscanner.str("");
 	sscanner<<inp_fin<<delim<<Order<<"order.txt\0";
 	string s=sscanner.str();
@@ -648,7 +301,6 @@ int main(int argc, char* argv[])
 
 			clear_res_Matrix(MatrixFull,vec_amount);//Очищаем матрицы результатов для нового маршрута
 
-			//ccout<<"j="<<j<<"\n";
 			sscanner.str("");
 			sscanner<<inp_route<<Order<<"_"<<str_type<<delim<<Order<<"_"<<i<<"_"<<j<<"_routeNum_"<<str_type<<".txt";
 			s=sscanner.str();
@@ -658,7 +310,7 @@ int main(int argc, char* argv[])
 			route.str(s);
 			
 			read_Route(r,route);
-			eval_cur_route(r,Order,i,edges,nodes,edge_num);
+			eval_cur_route(r,Order,i,edges,nodes,edge_num,node_nums_of_edges);
 			int nodesAmount = nodes.size();
 			for(int ll=0;ll<edge_num;ll++)
 			{
@@ -676,8 +328,6 @@ int main(int argc, char* argv[])
 			}
 			//Конец проверки на ошибку в ребрах
 
-
-
 			getline(operatorsset,s);
 			real_size=(int)pow((double)2,node_num);
 			int zz=0;
@@ -689,12 +339,7 @@ int main(int argc, char* argv[])
 
 				if(s.length()>0)
 				{
-
 					cout<<Order<<" "<<i<<" "<<j<<" zz="<<zz<<"\n";
-					//test
-					//ccout<<n<<" "<<i<<" "<<j<<" zz="<<zz<<" ";
-					//ccout<<s<<" ";
-					//end test
 					zz++;
 
 					sscanner.str(s);
@@ -709,8 +354,6 @@ int main(int argc, char* argv[])
 						check_cur_operator_set(result,Order,edge_num,nodeSets[k],cur_operator_set,edges);
 						if(result)//вычисляем кофигурацию
 						{
-							/*if(k==nodeSets.size()-1)
-								t1=clock();*/
 							for(int ll=0;ll<real_size;ll++)//очищаем выходные данные
 							{
 								vOut1[ll].clear();
@@ -763,9 +406,7 @@ int main(int argc, char* argv[])
 
 							}
 
-
 							///Вычисляем замыкающие хвосты
-
 							for(int ll=0;ll<real_size;ll++)
 							{
 								ref1=&vIn[ll];
@@ -812,10 +453,7 @@ int main(int argc, char* argv[])
 										vOutTemp1.clear();
 									}
 								}
-								//logfile<<"curlen="<<i<<" curn="<<j<<" zz="<<zz<<" k="<<k<<" x="<<ll<<" size1="<<vOut1[ll].size()<<" size2="<<vOut2[ll].size()<<"\n";
 							}
-
-							
 							
 							for(int x=0;x<real_size;x++)
 							{
@@ -833,52 +471,11 @@ int main(int argc, char* argv[])
 									MatrixFull[x][y]+=tmpres;
 								}
 							}
-							//end=clock();
-							//cout<<"\n\nTest time="<<(end-start)*1.0<<"\n\n";
-							//if(k==nodeSets.size()-1)
-								//ccout<<float(clock()-t1)/CLOCKS_PER_SEC<<"\n";
 						}
 					}
-
-
-					//записываем ответ в файлы - отдельно для каждого слагаемого
-					/*for(unsigned int k=0;k<nodeSets.size();k++)
-					{
-						int minus_factor=minus1(nodeSets[k],n);
-						res_Extend(Matrix[k],real_size);
-						sscanner.str("");
-						sscanner<<n<<"ord_"<<i<<"realLen_"<<j<<"RouteNum_"<<k<<"termNum.txt";
-						matrixRes.open(sscanner.str(),ios::out);
-						matrixRes<<"{";
-						for(int ii=0;ii<vec_amount;ii++)
-						{
-							matrixRes<<"{";
-							for(int jj=0;jj<vec_amount;jj++)
-							{
-								for(int kk=0;kk<(n+2)*(n+1)/2;kk++)
-								{
-
-									if(abs(Matrix[k][ii][jj].factors[kk])>0.0000000000001)
-										matrixRes<<Matrix[k][ii][jj].factors[kk]*minus_factor<<"*"<<strarr[kk]<<"+";
-								}
-								if(jj<vec_amount-1)
-									matrixRes<<"0,";
-								else
-									matrixRes<<"0";
-							}
-							if(ii<vec_amount-1)
-								matrixRes<<"},\n";
-							else
-								matrixRes<<"}\n";
-
-						}
-						matrixRes<<"}";
-						matrixRes.close();
-					}*/
 				}
 			}
 			//записываем ответ в файл - итог для маршрута
-			//res_Extend(MatrixFull,real_size);
 			sscanner.str("");
 			sscanner<<out_string<<Order<<"_"<<i<<"_"<<j << "_" << baseType <<"_res_"<<str_type<<".txt";
 			matrixRes.open((sscanner.str()).c_str(),ios::out);

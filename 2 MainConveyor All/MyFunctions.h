@@ -3,111 +3,43 @@
 #include <string>
 using namespace std;
 
-///
-
-
-///
 const int N=8;
 
-//start test const
-const int function_flag=4;
-//end test const
+extern const string delim;
+extern const string inp_fin;
+extern const string inp_matr;
+extern const string inp_route;
+extern const string out_res;
 
-const string delim="\\";
-const string inp_fin="final_data";
-const string inp_matr="matrixes"+delim+"b2_";
-const string inp_route="input_routes"+delim;
-const string out_res="results_";
+extern const string type_name[3];
 
-const string type1="l";
-const string type2="nl";
-const string type3="ns";
-
-const int maxIntElem=4; //
-const int Namount=256;   //количество различных ground-состояний 8
-const int resAmount=45; //кол-во различных J факторов в 8 порядке
-const int matrixResAmount=429; //кол-во различных слагаемых в ряду теории возмущений в 8 порядке
+const int maxIntElem = 3; //
+const int Namount = 256;   //количество различных ground-состояний 8
+const int resAmount = 45; //кол-во различных J факторов в 8 порядке
+const int matrixResAmount = 429; //кол-во различных слагаемых в ряду теории возмущений в 8 порядке
 
 
 struct step
 {
-	step(int x,int y)
-	{
-		sx=x;
-		sy=y;
-	}
 	int sx;
 	int sy;
-	bool operator==(step s2)
-	{
-		if((sx==s2.sx)&&(sy==s2.sy))
-		{
-			return true;
-		}
-		else
-			return false;
-	}
+
+	step(int x, int y);
+	bool operator==(const step s2) const;
 };
 
 struct state
 {
 	double factor; //числовой множитель
 	static int suborder;//число состояний, которые должны реально обрабатываться
-	//!!! проверить char на ок
+
 	char coeff[3];  //степени коэффициентов J1,J2 и (J2-J1)
 	char states[N];// номера состояний из соответствующих плакетов
-	bool operator<(const state &s) const//только для 2ух состояний, переделать в высших порядках
-	{
-		int i=0;
-		while(i<suborder)
-		{
-			if(states[i]<s.states[i]) return true;
-			else if(states[i]>s.states[i]) return false;
-			i++;
-		}
-		i=0;
-		while(i<3)
-		{
-			if(coeff[i]<s.coeff[i]) return true;
-			else if(coeff[i]>s.coeff[i]) return false;
-			i++;
-		}
-		return false;
-	}
+	bool operator<(const state &s) const;//сравнивает два состояния
 
-
-	bool operator==(state s) //состояния равны если номера всех состояний равны
-	{
-		bool Res=true;
-		for(int i=0;i<suborder;i++)
-			if(states[i]!=s.states[i])
-			{
-				Res=false;
-				break;
-			}
-			return Res;
-	}
-
-	bool check(state s)
-	{
-		bool Res=true;
-		for(int i=0;i<suborder;i++)
-			if(states[i]!=s.states[i])
-			{
-				Res=false;
-				break;
-			}
-			if(Res)
-			{
-				for(int i=0;i<3;i++)
-					if(s.coeff[i]!=coeff[i])
-					{
-						Res=false;
-						break;
-					}
-			}
-			return Res;
-	}
+	bool operator==(state s); //состояния равны если номера состояний всех псевдоспинов равны
+	
+	bool is_identical(state s);//совпадение состояний всех вершин+ совпадение степеней коэффициентов
 };
 
 struct inter
@@ -120,46 +52,16 @@ struct inter
 struct res
 {
 	double factors[matrixResAmount]; //итоговые множители при полном сворачивании
-	//28 - число различных факторов в 6 порядке
 
-
-	//OK
-	res& operator+=(res &tmp)
-	{
-		for(int i=0;i<matrixResAmount;i++)
-		{
-			factors[i]+=tmp.factors[i];
-		}
-		return *this;
-	}
-	void minus()
-	{
-		for(int i=0;i<matrixResAmount;i++)
-			factors[i]*=-1;
-	}
+	res& operator+=(res &tmp);//Добавление нового результата к текущему
+	void minus();//Меняет знак у всех слагаемых результата
 };
-
 
 struct edge //для хранения координат ребер
 {
 	int x1,y1,x2,y2;
-	bool operator==(edge e2)
-	{
-		if(((x1==e2.x1)&&(x2==e2.x2)&&(y1==e2.y1)&&(y2==e2.y2))||((x1==e2.x2)&&(x2==e2.x1)&&(y1==e2.y2)&&(y2==e2.y1)))
-		{
-			return true;
-		}
-		else
-			return false;
-	}
-	void set(int X1,int Y1,int X2,int Y2)
-	{
-		x1=X1;
-		y1=Y1;
-		x2=X2;
-		y2=Y2;
-	}
-
+	bool operator==(const edge e2) const; //сравнивает два ребра
+	void set(int X1, int Y1, int X2, int Y2); //задает начало и конец ребра
 };
 
 
@@ -181,11 +83,9 @@ extern state init;
 
 void returnV(inter curInter[][maxIntElem],int interAmount[],int interN,int n1,int n2,int dx,int dy,int plaquetType=0);//устанавливает оператор взаимодействия вдоль ребра
 
-
 void generate_all_Jfactors(int n,int **Jfactors);
 
 void generate_all_Jstrings(int n,int **Jfactors,string *strarr);
-
 
 void collect(vector<state> &outvec,vector<state> &invec);
 
@@ -204,3 +104,21 @@ void act_inside_ground(vector<state> &inv,vector<state> &outv,int plaquetNumber,
 void act_inside_enrgy_power(vector<state> &inv,vector<state> &outv,int power,int plaquetNumber, int nodesAmount);
 
 void generate_procedure_order(int *termorder,int* operatororder,int edge_amount,int num,int *Res,int *power);
+
+void eval_cur_route(int r[][2], int OrderLength, int RouteLength, vector<edge> &edges, vector<step> &nodes, int &RealLength, int node_nums_of_edges[][2]);
+
+int find_last_group(vector<state> &cur, int start_n);//возвращает номер последнего элемента равного заданному, работает для отсортированных массивов
+
+res finalvalue4(vector<state> &v1, vector<state> &v2, int **Jfactors, int n);//Выполняет сумирование двух векторов состояний по одинаковым состояниям
+
+bool check_cur_operator_set(bool &Res, int OrderLength, int RealLength, int *termorder, int *op_set, vector<edge> edges);//проверяем может ли быть не 0 по данной конфигурации
+
+void read_Route(int r[][2], istringstream &s);//преобразуем строку в массив вершин
+
+void  clear_res_Matrix(res **ans, int size); //Очистка матрицы результатов
+
+void add_res_Matrix(res **ans, res **cur, int size);//Складывает две матрицы результатов
+
+int getPlaquetType(step cur_point, int baseType);//Определяет тип плакета на треугольной решетке
+
+int minus1(int *nodeSet, int n);//Определяет знак слагаемого в ряду теории возмущения
