@@ -59,7 +59,7 @@ struct state
 	bool operator<(const state &s) const//только для 2ух состояний, переделать в высших порядках
 	{
 		int i=0;
-		while(i<N)
+		while(i<suborder)
 		{
 			if(states[i]<s.states[i]) return true;
 			else if(states[i]>s.states[i]) return false;
@@ -79,7 +79,7 @@ struct state
 	bool operator==(state s) //состояния равны если номера всех состояний равны
 	{
 		bool Res=true;
-		for(int i=0;i<N;i++)
+		for(int i=0;i<suborder;i++)
 			if(states[i]!=s.states[i])
 			{
 				Res=false;
@@ -91,7 +91,7 @@ struct state
 	bool check(state s)
 	{
 		bool Res=true;
-		for(int i=0;i<N;i++)
+		for(int i=0;i<suborder;i++)
 			if(states[i]!=s.states[i])
 			{
 				Res=false;
